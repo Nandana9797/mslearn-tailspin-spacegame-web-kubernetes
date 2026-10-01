@@ -49,7 +49,21 @@ stages:
 
     # Build and push Leaderboard image
     - script: |
-        docker build \
+        echo "=============================================="
+        echo "CHECKED OUT GIT COMMIT"
+        echo "=============================================="
+        git rev-parse HEAD
+
+        echo "=============================================="
+        echo "ACTUAL LEADERBOARD DOCKERFILE"
+        echo "=============================================="
+        cat "$(Build.SourcesDirectory)/Tailspin.SpaceGame.LeaderboardContainer/Dockerfile"
+
+        echo "=============================================="
+        echo "BUILDING LEADERBOARD WITHOUT CACHE"
+        echo "=============================================="
+
+        docker build --no-cache \
           -t $(RegistryName)/$(leaderboardRepository):$(tag) \
           -f $(Build.SourcesDirectory)/Tailspin.SpaceGame.LeaderboardContainer/Dockerfile \
           $(Build.Repository.LocalPath)

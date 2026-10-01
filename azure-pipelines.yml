@@ -16,6 +16,9 @@ stages:
 - stage: Build
   displayName: Build the containers
 
+  variables:
+  - group: Release
+
   jobs:
   - job: Build
     displayName: Build
@@ -68,7 +71,6 @@ stages:
   dependsOn: Build
 
   jobs:
-
   - deployment: Deploy
     displayName: Deploy
 

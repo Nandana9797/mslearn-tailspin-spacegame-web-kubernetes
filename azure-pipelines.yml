@@ -27,7 +27,10 @@ stages:
 
     steps:
 
-    # Login to Azure and then login Docker to ACR
+    # --------------------------------------------------------
+    # Login to Azure and ACR
+    # --------------------------------------------------------
+
     - task: AzureCLI@2
       displayName: Login to Azure Container Registry
       inputs:
@@ -37,7 +40,10 @@ stages:
         inlineScript: |
           az acr login --name tailspinspacegame123
 
+    # --------------------------------------------------------
     # Build and push Web image
+    # --------------------------------------------------------
+
     - script: |
         docker build \
           -t $(RegistryName)/$(webRepository):$(tag) \
@@ -47,31 +53,48 @@ stages:
         docker push $(RegistryName)/$(webRepository):$(tag)
       displayName: Build and push web image
 
+    # --------------------------------------------------------
     # Build and push Leaderboard image
+    # --------------------------------------------------------
+
     - script: |
         echo "=============================================="
-        echo "CHECKED OUT GIT COMMIT"
+        echo "LEADERBOARD DOCKERFILE"
         echo "=============================================="
-        git rev-parse HEAD
 
-        echo "=============================================="
-        echo "ACTUAL LEADERBOARD DOCKERFILE"
-        echo "=============================================="
         cat "$(Build.SourcesDirectory)/Tailspin.SpaceGame.LeaderboardContainer/Dockerfile"
 
         echo "=============================================="
-        echo "BUILDING LEADERBOARD WITHOUT CACHE"
+        echo "CHECKING .NET 8 SDK"
         echo "=============================================="
 
-        docker build --no-cache \
+        docker pull mcr.microsoft.com/dotnet/sdk:8.0
+
+        docker run --rm \
+          mcr.microsoft.com/dotnet/sdk:8.0 \
+          dotnet --version
+
+        echo "=============================================="
+        echo "BUILDING LEADERBOARD WITH .NET 8"
+        echo "=============================================="
+
+        docker build --pull --no-cache \
           -t $(RegistryName)/$(leaderboardRepository):$(tag) \
           -f $(Build.SourcesDirectory)/Tailspin.SpaceGame.LeaderboardContainer/Dockerfile \
           $(Build.Repository.LocalPath)
 
+        echo "=============================================="
+        echo "PUSHING LEADERBOARD IMAGE"
+        echo "=============================================="
+
         docker push $(RegistryName)/$(leaderboardRepository):$(tag)
+
       displayName: Build and push leaderboard image
 
+    # --------------------------------------------------------
     # Publish Kubernetes manifests
+    # --------------------------------------------------------
+
     - publish: '$(Build.SourcesDirectory)/manifests'
       artifact: manifests
 
@@ -82,6 +105,7 @@ stages:
 
 - stage: Deploy
   displayName: Deploy the containers
+
   dependsOn: Build
 
   jobs:
@@ -102,11 +126,17 @@ stages:
 
           steps:
 
-          # Download manifests artifact
+          # --------------------------------------------------
+          # Download manifests
+          # --------------------------------------------------
+
           - download: current
             artifact: manifests
 
-          # Deploy manifests to AKS
+          # --------------------------------------------------
+          # Deploy to AKS
+          # --------------------------------------------------
+
           - task: KubernetesManifest@1
             displayName: Deploy to Kubernetes cluster
             inputs:
